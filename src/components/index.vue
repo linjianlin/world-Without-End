@@ -388,8 +388,26 @@
                       ({{ item.strengSpirit }})
                     </span>
                   </p>
-                  <Divider v-if="item.decs" />
-                  <p v-if="item.decs">描述： {{ item.decs }}</p>
+                  <Divider v-if="item.affixVoList != []" />
+                  <template v-if="item.affixVoList">
+                    <p
+                      v-for="cz in item.affixVoList"
+                      :key="cz.affixDescribe"
+                      :style="{
+                        color:
+                          cz.affixLevel == 'T1'
+                            ? 'rgb(234 255 0)'
+                            : 'rgb(73, 193, 248)',
+                      }"
+                    >
+                      {{ cz.affixName }}: {{ cz.affixDescribe }}
+                      {{ cz.affixLevel }}
+                    </p>
+                  </template>
+                  <Divider v-if="item.skillDesc" />
+                  <p v-if="item.skillDesc">技能描述： {{ item.skillDesc }}</p>
+                  <!-- <Divider v-if="item.equitDec" /> -->
+                  <!-- <p v-if="item.equitDec">描述： {{ item.equitDec }}</p> -->
                 </div>
               </Poptip>
             </div>
@@ -424,8 +442,41 @@
             {{ mapNameF }}
           </p>
 
+          <!-- 批量使用弹出框 -->
+          <Modal
+            width="620"
+            title="结算离线"
+            v-model="settlementjectEject"
+            :styles="{ top: '100px' }"
+          >
+            <div>
+              总共获得 {{ settlementjectList.countExp }} 经验
+              <br />
+              总共战斗 {{ settlementjectList.combatNum }} 次数
+              <br />
+              总共胜利 {{ settlementjectList.combatSuccessNum }} 次数
+              <br />
+              获得 {{ settlementjectList.countItemNum }} 个物品
+              <br />
+              自动出售 {{ settlementjectList.countSellNum }} 个数量
+              <br />
+              总共获得 {{ settlementjectList.countMoney }} 铜钱
+              <br />
+              {{ settlementjectList.outboardTime }}
+            </div>
+          </Modal>
+
           <!-- changeMap -->
           <Button
+            slot="extra"
+            @click.prevent="reverseOffLine"
+            size="small"
+            type="success"
+          >
+            {{ this.user.online == 0 ? "开始离线" : "结算离线" }}
+          </Button>
+          <Button
+            style="margin-left: 30px"
             slot="extra"
             @click.prevent="withdrawFromAction"
             size="small"
@@ -469,7 +520,9 @@
                 :title="item.name"
               >
                 ({{ item.prefix == 0 ? "无" : item.prefix }}){{ item.name }}
-                <Progress :percent="Math.max(item.life,0) / item.maxLife * 100">
+                <Progress
+                  :percent="(Math.max(item.life, 0) / item.maxLife) * 100"
+                >
                   <span>{{ item.life }}</span>
                 </Progress>
                 <div slot="content">
@@ -544,8 +597,13 @@
               <p>装备分类</p>
               <RadioGroup v-model="classification">
                 <Radio label="0">全部</Radio>
-                <Radio label="1">装备</Radio>
-                <Radio label="2">灵力武器</Radio>
+                <Radio label="1">武器</Radio>
+                <Radio label="2">衣服</Radio>
+                <Radio label="3">头部</Radio>
+                <Radio label="4">项链</Radio>
+                <Radio label="7">戒指</Radio>
+                <Radio label="9">腰带</Radio>
+                <Radio label="10">鞋子</Radio>
               </RadioGroup>
               <p>装备品质</p>
               <RadioGroup v-model="quality">
@@ -598,6 +656,14 @@
                     type="info"
                   >
                     装备
+                  </Button>
+                  <Button
+                    @click.prevent="appraisal(item)"
+                    size="small"
+                    type="info"
+                    v-if="item.itemType != 3 && item.itemType != 4"
+                  >
+                    鉴定
                   </Button>
                   <Button
                     @click.prevent="strengthen(item)"
@@ -701,9 +767,29 @@
                         ({{ Equipment.strengSpirit }})
                       </span>
                     </p>
+                    <Divider v-if="Equipment.affixVoList" />
+                    <template v-if="Equipment.affixVoList">
+                      <p
+                        v-for="cz in Equipment.affixVoList"
+                        :key="cz.affixDescribe"
+                        :style="{
+                          color:
+                            cz.affixLevel == 'T1'
+                              ? 'rgb(234 255 0)'
+                              : 'rgb(73, 193, 248)',
+                        }"
+                      >
+                        {{ cz.affixName }}: {{ cz.affixDescribe }}
+                        {{ cz.affixLevel }}
+                      </p>
+                    </template>
                     <Divider v-if="Equipment.equitDec" />
                     <p v-if="Equipment.equitDec">
                       描述： {{ Equipment.equitDec }}
+                    </p>
+                    <Divider v-if="Equipment.skillDesc" />
+                    <p v-if="Equipment.skillDesc">
+                      技能描述： {{ Equipment.skillDesc }}
                     </p>
                   </div>
 
@@ -780,8 +866,26 @@
                         ({{ item.strengSpirit }})
                       </span>
                     </p>
+                    <Divider v-if="item.affixVoList" />
+                    <template v-if="item.affixVoList">
+                      <p
+                        v-for="cz in item.affixVoList"
+                        :key="cz.affixDescribe"
+                        :style="{
+                          color:
+                            cz.affixLevel == 'T1'
+                              ? 'rgb(234 255 0)'
+                              : 'rgb(73, 193, 248)',
+                        }"
+                      >
+                        {{ cz.affixName }}: {{ cz.affixDescribe }}
+                        {{ cz.affixLevel }}
+                      </p>
+                    </template>
                     <Divider v-if="item.decs" />
                     <p v-if="item.decs">描述： {{ item.decs }}</p>
+                    <Divider v-if="item.skillDesc" />
+                    <p v-if="item.skillDesc">技能描述： {{ item.skillDesc }}</p>
                   </div>
                 </div>
               </Poptip>
@@ -792,13 +896,21 @@
         <!-- 材料背包 -->
         <Card>
           <p slot="title">材料背包</p>
-          <div slot="extra"></div>
+          <div slot="extra">
+            <Button @click.prevent="arrangement" size="small" type="info">
+              整理
+            </Button>
+          </div>
           <div>
             <div>
               <p>物品分类</p>
               <RadioGroup v-model="materialClassification">
                 <Radio label="3">道具</Radio>
-                <Radio label="4">材料</Radio>
+                <Radio label="4">合成</Radio>
+                <Radio label="5">突破</Radio>
+                <Radio label="7">强化</Radio>
+                <Radio label="8">活动</Radio>
+                <Radio label="9">真灵</Radio>
               </RadioGroup>
               <p>物品品质</p>
               <RadioGroup v-model="materialQuality">
@@ -838,10 +950,7 @@
                   >
                     +{{ item.enhanLevel }}
                   </span>
-                  <span
-                    class="jjt_smail"
-                    v-if="item.itemType == 3 || item.itemType == 4"
-                  >
+                  <span class="jjt_smail">
                     {{ item.itemNum }}
                   </span>
                   <Button
@@ -851,6 +960,14 @@
                     type="info"
                   >
                     使用
+                  </Button>
+                  <Button
+                    @click.prevent="hatch(item)"
+                    size="small"
+                    v-if="item.itemType == 9"
+                    type="info"
+                  >
+                    孵化
                   </Button>
                   <Button
                     @click.prevent="useItems1(item)"
@@ -963,6 +1080,16 @@ export default {
       batchNum: "", // 使用物品数量
       batchEject: false, // 批量使用的弹出框
       bgColor: "#666",
+      settlementjectEject: false, // 结算离线挂机的弹出框
+      settlementjectList: {
+        countExp: "",
+        countItemNum: "",
+        countMoney: "",
+        outboardTime: "",
+        combatNum: "",
+        combatSuccessNum: "",
+        countSellNum: "",
+      }, // 弹出框的离线收益
     };
   },
   computed: {
@@ -970,7 +1097,7 @@ export default {
       let knapsackList = this.knapsackList.slice(0);
       if (this.classification != 0) {
         knapsackList = knapsackList.filter(
-          (item) => item.itemType == this.classification
+          (item) => item.kind == this.classification
         );
       }
       if (this.quality != 0) {
@@ -1086,11 +1213,13 @@ export default {
     // 合成之后才发送的
     this.$bus.$on("synthesisMsg", (msg) => {
       this.refreshMaterialPackage();
+      this.refreshPackage();
       this.refreshUserInfoCache();
     });
     // 批量合成之后才发送的
     this.$bus.$on("synthesisMsg1", (msg) => {
       this.refreshMaterialPackage();
+      this.refreshPackage();
       this.refreshUserInfoCache();
     });
     // setTimeout(() => {
@@ -1124,6 +1253,50 @@ export default {
         this.electronicEquipment = true;
       }
     },
+    // 开始离线 结算离线
+    reverseOffLine() {
+      var mapid;
+      for (var i = 0; i < this.mapList.length; i++) {
+        if (this.mapName == this.mapList[i].mapName) {
+          var mapid = this.mapList[i].mapId;
+        }
+      }
+      if (!mapid && this.user.online == 0) {
+        this.$Message.warning("请选择离线地图");
+        return;
+      }
+      if (this.user.online == 0) {
+        this.$http
+          .post(
+            "/gameChara/startOffline/?charaId=" +
+              this.getCookie("charaId") +
+              "&mapId=" +
+              mapid
+          )
+          .then((res) => {
+            this.$Message.warning(res.data.msg);
+            this.refreshUserInfo(); // 获取用户 人物属性
+            this.refreshUserInfoCache();
+          })
+          .catch((err) => {
+            this.$Message.warning("开始离线失败,请联系管理员");
+          });
+      } else if (this.user.online == 1) {
+        this.$http
+          .post("/gameChara/endOffline/?charaId=" + this.getCookie("charaId"))
+          .then((res) => {
+            this.settlementjectList = res.data.data;
+            this.settlementjectEject = true;
+            this.$Message.warning(res.data.msg);
+            this.refreshUserInfo(); // 获取用户 人物属性
+            this.refreshUserInfoCache();
+          })
+          .catch((err) => {
+            this.$Message.warning("结算离线失败,请联系管理员");
+          });
+      }
+    },
+    //
     getRealmAttribute() {
       this.$http
         .post("/gameRealm/getRealmBonus?charaId=" + this.getCookie("charaId"))
@@ -1246,6 +1419,7 @@ export default {
         )
         .then((res) => {
           this.equipmentList = this.getEquipMap(res.data.data);
+          console.log(res.data.data);
         })
         .catch((err) => {
           this.$Message.warning("获取装备列表失败,请联系管理员");
@@ -1297,6 +1471,7 @@ export default {
         .post("gameChara/getCharaPackage?charaId=" + this.getCookie("charaId"))
         .then((res) => {
           this.knapsackList = res.data.data;
+          console.log(res.data.data);
         })
         .catch((err) => {
           this.$Message.warning("获取装备包裹失败,请联系管理员");
@@ -1420,18 +1595,18 @@ export default {
     // 播报战斗返回的日志
     async boardcastCombatResult(result) {
       this.monsterList = result.gameMonList; // 怪物信息
-      this.monsterList.forEach(m => m.maxLife = m.life);
+      this.monsterList.forEach((m) => (m.maxLife = m.life));
       let combatInfo = result.combatInfo;
       for (let i = 0; i < combatInfo.length; i++) {
         // 每条记录的输出相隔 1.5 秒
         await sleep(1500);
         const record = combatInfo[i];
-        const targets = this.monsterList.filter(m=>m.name == record.hinjured);
-        if(targets.length > 0)
-        {
+        const targets = this.monsterList.filter(
+          (m) => m.name == record.hinjured
+        );
+        if (targets.length > 0) {
           targets[0].life = record.surplusHealth;
         }
-
         // 1 物理伤害 2灵力伤害 3持续伤害 4恢复血量
         // console.log(record, "战斗日志");
         if (record.hurtType == 5) {
@@ -1467,6 +1642,7 @@ export default {
           // 通知技能刷新检查
           this.$bus.$emit("getSkillMsg");
         }
+        // this.refreshUserInfo();
         this.refreshUserInfoCache();
       }
     },
@@ -1510,6 +1686,22 @@ export default {
         }
       }
     },
+    // 整理物品失败
+    arrangement() {
+      this.$http
+        .post(
+          "/gameChara/arrangeCharaMaterial?charaId=" + this.getCookie("charaId")
+        )
+        .then((res) => {
+          this.$Message.warning(res.data.msg);
+          this.refreshMaterialPackage();
+          this.materialClassification = "0";
+          this.quality = "0";
+        })
+        .catch((err) => {
+          this.$Message.warning("整理物品失败,请联系管理员");
+        });
+    },
     // 出售全部装备
     sellAll() {
       let arrKnapsac = [];
@@ -1528,10 +1720,29 @@ export default {
           this.refreshPackage();
           // 每次出售完 就退到2个全部
           this.classification = "0";
-          this.quality = "0";
+          this.materialQuality = "0";
         })
         .catch((err) => {
           this.$Message.warning("出售全部物品失败,请联系管理员");
+        });
+    },
+    // 鉴定装备
+    appraisal(item) {
+      this.$http
+        .post(
+          "/gameCharaEquip/appraisalEquitBypackage?charaId=" +
+            this.getCookie("charaId") +
+            "&packItemId=" +
+            item.packItemId
+        )
+        .then((res) => {
+          this.refreshUserInfoCache();
+          this.refreshPackage();
+          // 每次出售完 就退到2个全部
+          this.$Message.warning(res.data.data);
+        })
+        .catch((err) => {
+          this.$Message.warning("鉴定装备失败,请联系管理员");
         });
     },
     // 脱下单件装备
@@ -1579,6 +1790,25 @@ export default {
             item.packItemId +
             "&useNum=" +
             1
+        )
+        .then((res) => {
+          this.$Message.warning(res.data.msg);
+          // this.refreshEquips();
+          this.refreshMaterialPackage();
+          this.refreshUserInfoCache();
+        })
+        .catch((err) => {
+          this.$Message.warning("使用失败,请联系管理员");
+        });
+    },
+    // 孵化
+    hatch(item) {
+      this.$http
+        .post(
+          "/gameAura/hatchPet?charaId=" +
+            this.getCookie("charaId") +
+            "&packId=" +
+            item.packItemId
         )
         .then((res) => {
           this.$Message.warning(res.data.msg);
@@ -1752,6 +1982,7 @@ export default {
   margin-bottom: 15px;
 }
 </style>
+
 <style scoped>
 /* 全局样式 */
 .two {
@@ -1952,3 +2183,4 @@ export default {
   color: rgb(45, 196, 255);
 }
 </style>
+
